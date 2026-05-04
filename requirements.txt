@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+flask-jwt-extended==4.6.0
+pyodbc
+ldap3
+pandas
+python-dotenv
+reportlab
+Werkzeug
+SQLAlchemy

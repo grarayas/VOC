@@ -1,0 +1,31 @@
+{% extends "shared/base.html" %}
+{% block title %}Red Team — V-Hub{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">V-Hub — Red Team</h1>
+            <p class="page-sub">Penetration testing findings · Manual vulnerability entry</p>
+        </div>
+        <div class="row-flex gap-8">
+            <a href="/vhub/cti" class="btn btn-sm">CTI</a>
+            <a href="/vhub/bitsight" class="btn btn-sm">BitSight</a>
+        </div>
+    </div>
+
+    <div style="padding:24px 32px; max-width:760px;">
+        <div class="panel">
+            <div class="panel-head"><span class="panel-title">Create Red Team finding</span></div>
+            <div class="panel-body">
+                <form method="POST">
+                    {% include "vhub/_vuln_form.html" %}
+                    <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+                        <button type="submit" class="btn btn-primary">Create Red Team vulnerability</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

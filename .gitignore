@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+instance/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+*.log
+*.csv
+*.xml

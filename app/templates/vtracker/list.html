@@ -1,0 +1,153 @@
+{% extends "shared/base.html" %}
+{% block title %}V-Tracker — Vulnerabilities{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">V-Tracker</h1>
+            <p class="page-sub">
+                {% if scope_name %}{{ scope_name }}
+                {% elif scope_cat == 'systeme' %}Système
+                {% elif scope_cat == 'applicatif' %}Applicatif
+                {% elif scope_cat == 'systeme_app' %}Sys+App
+                {% else %}All scopes
+                {% endif %}
+                · {{ pagination.total }} occurrence{{ 's' if pagination.total != 1 }}
+            </p>
+        </div>
+        <div class="row-flex gap-8">
+            <a href="/vhub/cti" class="btn btn-sm">+ Manual entry</a>
+            <button class="btn btn-sm btn-primary" onclick="void(0)">Export CSV</button>
+        </div>
+    </div>
+
+    {# Filter bar #}
+    <form method="GET" id="filterForm">
+        {% if scope_id_filter %}<input type="hidden" name="scope_id" value="{{ scope_id_filter }}">{% endif %}
+        {% if scope_cat %}<input type="hidden" name="scope_cat" value="{{ scope_cat }}">{% endif %}
+
+        <div class="filter-bar">
+            <input type="text" name="search" class="filter-search" placeholder="Search by plugin, CVE, asset name, IP…"
+                   value="{{ search }}">
+
+            <select name="severity" class="filter-select">
+                <option value="">Severity · all</option>
+                {% for s in ['Critical','High','Medium','Low','Info'] %}
+                <option value="{{ s }}" {% if severity_filter == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="status" class="filter-select">
+                <option value="">Status · all</option>
+                {% for s in ['Open','In Progress','Risk Assessment','Accepted Risk','Fixed'] %}
+                <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="source" class="filter-select">
+                <option value="">Source · all</option>
+                {% for s in ['tenable','cti','bitsight','redteam'] %}
+                <option value="{{ s }}" {% if source_filter == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+
+            <a href="/vtracker/list{% if scope_id_filter %}?scope_id={{ scope_id_filter }}{% elif scope_cat %}?scope_cat={{ scope_cat }}{% endif %}"
+               class="btn btn-sm" style="margin-left:auto;">Reset</a>
+            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+        </div>
+
+        <table class="tbl" style="border:1px solid var(--border); border-top:none;">
+            <thead>
+                <tr>
+                    <th style="width:90px;">ID</th>
+                    <th style="width:100px;">Severity</th>
+                    <th>Plugin / Finding</th>
+                    <th style="width:140px;">CVE</th>
+                    <th>Asset</th>
+                    <th style="width:110px;">IP</th>
+                    <th style="width:80px;">Source</th>
+                    <th style="width:120px;">Status</th>
+                    <th style="width:80px;">SLA</th>
+                    <th style="width:36px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for av in pagination.items %}
+            <tr>
+                <td class="mono">{{ av.av_id }}</td>
+                <td>
+                    <span class="sev {{ av.vulnerability.severity | lower }}">{{ av.vulnerability.severity }}</span>
+                </td>
+                <td style="font-weight:500; max-width:260px; overflow:hidden; text-overflow:ellipsis;">
+                    {{ av.vulnerability.plugin_name | truncate(40) }}
+                </td>
+                <td class="mono">{{ av.vulnerability.cve or '—' }}</td>
+                <td>{{ av.asset.name }}</td>
+                <td class="mono">{{ av.ip_address }}</td>
+                <td class="muted" style="text-transform:capitalize; font-size:11px;">{{ av.source }}</td>
+                <td>
+                    <span class="status {{ av.vuln_status | lower | replace(' ','-') }}">{{ av.vuln_status }}</span>
+                </td>
+                <td>
+                    {% if av.sla %}
+                    <span class="tnum" style="font-size:11px; color:{% if av.sla.sla_status == 'Breached' %}var(--critical){% elif av.sla.sla_status == 'At Risk' %}var(--high){% else %}var(--text-muted){% endif %}; font-weight:{% if av.sla.sla_status in ['Breached','At Risk'] %}600{% else %}400{% endif %};">
+                        {{ av.sla.sla_status }}
+                    </span>
+                    {% else %}
+                    <span class="muted" style="font-size:11px;">—</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:right;">
+                    <a href="{{ url_for('vtracker.detail', av_id=av.av_id) }}"
+                       class="btn btn-sm" style="height:22px; padding:0 6px; font-size:10px;">→</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10" style="text-align:center; color:var(--text-muted); padding:32px;">
+                    No vulnerabilities found matching the current filters.
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </form>
+
+    {# Pagination #}
+    {% if pagination.pages > 1 %}
+    <div class="pager">
+        <span>
+            Showing <strong style="color:var(--text);">{{ ((pagination.page-1)*pagination.per_page)+1 }}–{{ [pagination.page*pagination.per_page, pagination.total]|min }}</strong>
+            of <strong style="color:var(--text);">{{ pagination.total }}</strong>
+        </span>
+        <div class="pager-btns">
+            {% if pagination.has_prev %}
+            <a class="pager-btn"
+               href="{{ url_for('vtracker.vuln_list', page=pagination.prev_num, severity=severity_filter, status=status_filter, source=source_filter, search=search, scope_id=scope_id_filter, scope_cat=scope_cat) }}">‹</a>
+            {% else %}
+            <span class="pager-btn disabled">‹</span>
+            {% endif %}
+
+            {% for p in pagination.iter_pages() %}
+                {% if p %}
+                <a class="pager-btn {% if p == pagination.page %}active{% endif %}"
+                   href="{{ url_for('vtracker.vuln_list', page=p, severity=severity_filter, status=status_filter, source=source_filter, search=search, scope_id=scope_id_filter, scope_cat=scope_cat) }}">{{ p }}</a>
+                {% else %}
+                <span class="pager-btn disabled" style="letter-spacing:0;">…</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <a class="pager-btn"
+               href="{{ url_for('vtracker.vuln_list', page=pagination.next_num, severity=severity_filter, status=status_filter, source=source_filter, search=search, scope_id=scope_id_filter, scope_cat=scope_cat) }}">›</a>
+            {% else %}
+            <span class="pager-btn disabled">›</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="height:32px;"></div>
+</div>
+{% endblock %}

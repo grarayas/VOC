@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — VOC Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+    <div class="login-shell">
+        <aside class="login-side">
+            <div>
+                <div class="brand" style="font-size:14px;">
+                    <div class="brand-mark">V</div>
+                    <span>VOC&nbsp;PLATFORM</span>
+                </div>
+                <div style="margin-top:56px; max-width:380px;">
+                    <h1 style="font-size:32px; font-weight:600; letter-spacing:-0.02em; line-height:1.15; margin:0 0 16px; color:var(--text);">
+                        Vulnerability<br>Operations Center
+                    </h1>
+                    <p style="font-size:13px; color:var(--text-muted); line-height:1.6; margin:0;">
+                        Centralized lifecycle management for IT vulnerabilities across organizational scopes.
+                        Authenticated via corporate Active Directory.
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; gap:32px; font-size:11px; color:var(--text-muted); letter-spacing:0.04em; text-transform:uppercase;">
+                <span>v2.0 · Internal use only</span>
+                <span>SLA · RBAC · Audit</span>
+            </div>
+        </aside>
+
+        <div class="login-form-wrap">
+            <div style="margin-bottom:28px;">
+                <div style="font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px;">
+                    Sign in
+                </div>
+                <h2 style="font-size:22px; font-weight:600; margin:0; letter-spacing:-0.01em; color:var(--text);">
+                    Authenticate with domain credentials
+                </h2>
+            </div>
+
+            <div class="login-error" id="errorAlert">
+                <strong>Authentication failed</strong>&nbsp;·&nbsp;<span id="errorMsg"></span>
+            </div>
+
+            <div class="login-input-grp">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" class="login-input" placeholder="e.g. john.doe" required autofocus>
+            </div>
+            <div class="login-input-grp">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="login-input" placeholder="Active Directory password" required>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 24px; font-size:12px;">
+                <label style="display:flex; align-items:center; gap:6px; color:var(--text-muted);">
+                    <input type="checkbox" id="rememberMe"> Remember this session
+                </label>
+            </div>
+
+            <button type="button" class="login-btn" id="submitBtn" onclick="doLogin()">
+                <span id="btnText">Sign in &nbsp;→</span>
+                <span id="btnSpinner" style="display:none;">Authenticating…</span>
+            </button>
+
+            <div style="margin-top:24px; padding:12px 14px; border:1px solid var(--border); background:var(--surface); font-size:11px; color:var(--text-muted); line-height:1.5;">
+                <strong style="color:var(--text); font-weight:600;">AD bind</strong> · LDAP3 against corporate Active Directory.
+                Group membership maps to organizational scope. Sessions expire after 8h.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // If a valid token already exists, redirect immediately
+        const existingToken = localStorage.getItem('voc_token');
+        if (existingToken) {
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + existingToken }
+            }).then(resp => {
+                if (resp.ok) {
+                    document.cookie = `voc_token=${existingToken}; path=/; SameSite=Lax`;
+                    const existingUser = JSON.parse(localStorage.getItem('voc_user') || 'null');
+                    window.location.href = (existingUser && existingUser.role === 'admin')
+                        ? '/overview/' : '/vtracker/';
+                } else {
+                    localStorage.removeItem('voc_token');
+                    localStorage.removeItem('voc_user');
+                }
+            }).catch(() => {
+                localStorage.removeItem('voc_token');
+                localStorage.removeItem('voc_user');
+            });
+        }
+
+        const input = document.getElementById('password');
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+        document.getElementById('username').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+        async function doLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMsg = document.getElementById('errorMsg');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const submitBtn = document.getElementById('submitBtn');
+
+            errorAlert.style.display = 'none';
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = '';
+
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await resp.json();
+
+                if (resp.ok) {
+                    localStorage.setItem('voc_token', data.access_token);
+                    localStorage.setItem('voc_user', JSON.stringify(data.user));
+                    window.location.href = data.user.role === 'admin' ? '/overview/' : '/vtracker/';
+                } else {
+                    errorMsg.textContent = data.error || 'Invalid credentials.';
+                    errorAlert.style.display = 'block';
+                }
+            } catch {
+                errorMsg.textContent = 'Cannot reach the server. Please try again.';
+                errorAlert.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                btnText.style.display = '';
+                btnSpinner.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

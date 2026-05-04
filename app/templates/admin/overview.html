@@ -1,0 +1,194 @@
+{% extends "shared/base.html" %}
+{% block title %}Overview — VOC Platform{% endblock %}
+
+{% block content %}
+{% set total_open = stats.applicatif.total + stats.systeme.total + stats.systeme_app.total %}
+{% set total_critical = stats.applicatif.critical + stats.systeme.critical + stats.systeme_app.critical %}
+{% set total_breached = stats.applicatif.breached + stats.systeme.breached + stats.systeme_app.breached %}
+{% set total_open_count = stats.applicatif.open + stats.systeme.open + stats.systeme_app.open %}
+
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Overview</h1>
+            <p class="page-sub">All scopes · Admin view</p>
+        </div>
+        <div class="row-flex gap-8">
+            <a href="/vtracker/list" class="btn btn-sm">View all vulnerabilities</a>
+            <a href="/reporting/" class="btn btn-sm btn-primary">Reports</a>
+        </div>
+    </div>
+
+    {# KPI Grid #}
+    <div class="sect-pad">
+        <div class="kpi-grid">
+            <div class="kpi">
+                <span class="kpi-label">Active vulnerabilities</span>
+                <span class="kpi-value tnum">{{ total_open }}</span>
+                <span class="kpi-delta">all open statuses</span>
+                <div class="kpi-bar"><span style="width:70%"></span></div>
+            </div>
+            <div class="kpi critical">
+                <span class="kpi-label">Critical</span>
+                <span class="kpi-value tnum">{{ total_critical }}</span>
+                <span class="kpi-delta">immediate attention required</span>
+                <div class="kpi-bar"><span style="width:{{ ((total_critical / (total_open + 1)) * 100) | int }}%"></span></div>
+            </div>
+            <div class="kpi">
+                <span class="kpi-label">Open (unassigned)</span>
+                <span class="kpi-value tnum">{{ total_open_count }}</span>
+                <span class="kpi-delta">awaiting triage</span>
+                <div class="kpi-bar"><span style="width:{{ ((total_open_count / (total_open + 1)) * 100) | int }}%"></span></div>
+            </div>
+            <div class="kpi warning">
+                <span class="kpi-label">SLA breached</span>
+                <span class="kpi-value tnum">{{ total_breached }}</span>
+                <span class="kpi-delta">past due date</span>
+                <div class="kpi-bar"><span style="width:{{ ((total_breached / (total_open + 1)) * 100) | int }}%"></span></div>
+            </div>
+        </div>
+    </div>
+
+    {# By-category breakdown #}
+    <div class="sect-pad" style="padding-bottom:0;">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+
+            <div class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">Applicatif</span>
+                    <a href="/vtracker/list?scope_cat=applicatif" style="font-size:11px;">View →</a>
+                </div>
+                <table class="tbl">
+                    <tbody>
+                        <tr>
+                            <td class="muted" style="font-size:11px;">Total active</td>
+                            <td class="num tnum" style="font-weight:600;">{{ stats.applicatif.total }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="sev critical">Critical</span></td>
+                            <td class="num tnum" style="color:var(--critical); font-weight:600;">{{ stats.applicatif.critical }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status open">Open</span></td>
+                            <td class="num tnum">{{ stats.applicatif.open }}</td>
+                        </tr>
+                        <tr>
+                            <td class="muted" style="font-size:11px;">SLA breached</td>
+                            <td class="num tnum" style="color:{% if stats.applicatif.breached > 0 %}var(--high){% else %}var(--text-muted){% endif %};">{{ stats.applicatif.breached }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">Système</span>
+                    <a href="/vtracker/list?scope_cat=systeme" style="font-size:11px;">View →</a>
+                </div>
+                <table class="tbl">
+                    <tbody>
+                        <tr>
+                            <td class="muted" style="font-size:11px;">Total active</td>
+                            <td class="num tnum" style="font-weight:600;">{{ stats.systeme.total }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="sev critical">Critical</span></td>
+                            <td class="num tnum" style="color:var(--critical); font-weight:600;">{{ stats.systeme.critical }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status open">Open</span></td>
+                            <td class="num tnum">{{ stats.systeme.open }}</td>
+                        </tr>
+                        <tr>
+                            <td class="muted" style="font-size:11px;">SLA breached</td>
+                            <td class="num tnum" style="color:{% if stats.systeme.breached > 0 %}var(--high){% else %}var(--text-muted){% endif %};">{{ stats.systeme.breached }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">Sys+App</span>
+                    <a href="/vtracker/list?scope_cat=systeme_app" style="font-size:11px;">View →</a>
+                </div>
+                <table class="tbl">
+                    <tbody>
+                        <tr>
+                            <td class="muted" style="font-size:11px;">Total active</td>
+                            <td class="num tnum" style="font-weight:600;">{{ stats.systeme_app.total }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="sev critical">Critical</span></td>
+                            <td class="num tnum" style="color:var(--critical); font-weight:600;">{{ stats.systeme_app.critical }}</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status open">Open</span></td>
+                            <td class="num tnum">{{ stats.systeme_app.open }}</td>
+                        </tr>
+                        <tr>
+                            <td class="muted" style="font-size:11px;">SLA breached</td>
+                            <td class="num tnum" style="color:{% if stats.systeme_app.breached > 0 %}var(--high){% else %}var(--text-muted){% endif %};">{{ stats.systeme_app.breached }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Recent critical vulns #}
+    <div class="sect-pad sect-pad-b">
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-head">
+                <span class="panel-title">Recent critical vulnerabilities</span>
+                <a href="/vtracker/list?severity=Critical" style="font-size:11px;">All critical →</a>
+            </div>
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>IP</th>
+                        <th>Plugin / Finding</th>
+                        <th>Scope</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>SLA</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for av in recent_critical %}
+                <tr>
+                    <td style="font-weight:500;">{{ av.asset.name }}</td>
+                    <td class="mono">{{ av.ip_address }}</td>
+                    <td style="max-width:260px; overflow:hidden; text-overflow:ellipsis;">{{ av.vulnerability.plugin_name | truncate(45) }}</td>
+                    <td class="muted" style="font-size:11px;">{{ av.asset.scope.scope_name }}</td>
+                    <td>
+                        {% set cat = av.asset.scope.category %}
+                        <span class="scope-badge {{ cat | replace('_','-') }}">{{ cat | replace('_',' ') }}</span>
+                    </td>
+                    <td>
+                        <span class="status {{ av.vuln_status | lower | replace(' ','-') }}">{{ av.vuln_status }}</span>
+                    </td>
+                    <td>
+                        {% if av.sla %}
+                        <span class="muted" style="font-size:11px;">{{ av.sla.sla_status }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <a href="/vtracker/detail/{{ av.av_id }}" class="btn btn-sm">View</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">
+                        No active critical vulnerabilities.
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

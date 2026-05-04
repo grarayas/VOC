@@ -1,0 +1,79 @@
+{% extends "shared/base.html" %}
+{% block title %}Reports — VOC Platform{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Reports</h1>
+            <p class="page-sub">Aggregated analytics · All scopes</p>
+        </div>
+        <div class="row-flex gap-8">
+            <button class="btn btn-sm" onclick="void(0)">↓ CSV</button>
+            <button class="btn btn-sm btn-primary" onclick="void(0)">↓ PDF report</button>
+        </div>
+    </div>
+
+    <div class="sect-pad" style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding-bottom:20px;">
+
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-title">By severity</span>
+                <span class="muted" style="font-size:11px;">open vulns</span>
+            </div>
+            <div class="panel-body">
+                {% for row in by_severity %}
+                <div style="display:grid; grid-template-columns:80px 1fr 40px; align-items:center; gap:10px; margin-bottom:10px; font-size:12px;">
+                    <span class="sev {{ (row.severity or 'low') | lower }}">{{ row.severity or '—' }}</span>
+                    <div style="height:8px; background:var(--surface-alt); border:1px solid var(--border);">
+                        <div style="height:100%; width:{{ [((row.count / 200) * 100)|int, 100]|min }}%;
+                            background:{% if row.severity=='Critical' %}var(--critical){% elif row.severity=='High' %}var(--high){% elif row.severity=='Medium' %}var(--medium){% else %}var(--low){% endif %};"></div>
+                    </div>
+                    <span class="tnum" style="text-align:right; font-weight:600;">{{ row.count }}</span>
+                </div>
+                {% else %}
+                <p class="muted" style="font-size:12px;">No data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-title">By status</span>
+                <span class="muted" style="font-size:11px;">open vulns</span>
+            </div>
+            <div class="panel-body">
+                {% for row in by_status %}
+                <div style="display:grid; grid-template-columns:1fr 40px; align-items:center; gap:10px; margin-bottom:10px; font-size:12px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                    <span class="status {{ row.vuln_status | lower | replace(' ','-') }}">{{ row.vuln_status }}</span>
+                    <span class="tnum" style="text-align:right; font-weight:600;">{{ row.count }}</span>
+                </div>
+                {% else %}
+                <p class="muted" style="font-size:12px;">No data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-title">By source</span>
+                <span class="muted" style="font-size:11px;">all vulns</span>
+            </div>
+            <div class="panel-body">
+                {% for row in by_source %}
+                <div style="display:grid; grid-template-columns:80px 1fr 40px; align-items:center; gap:10px; margin-bottom:10px; font-size:12px;">
+                    <span style="text-transform:capitalize; font-weight:500;">{{ row.source }}</span>
+                    <div style="height:8px; background:var(--surface-alt); border:1px solid var(--border);">
+                        <div style="height:100%; width:{{ [((row.count / 200) * 100)|int, 100]|min }}%; background:var(--accent);"></div>
+                    </div>
+                    <span class="tnum" style="text-align:right; font-weight:600;">{{ row.count }}</span>
+                </div>
+                {% else %}
+                <p class="muted" style="font-size:12px;">No data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

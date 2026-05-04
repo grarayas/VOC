@@ -1,0 +1,53 @@
+{% extends "shared/base.html" %}
+{% block title %}V-Tracker — Dashboard{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">V-Tracker</h1>
+            <p class="page-sub">Your scope · Active vulnerabilities</p>
+        </div>
+        <div class="row-flex gap-8">
+            <a href="{{ url_for('vtracker.vuln_list') }}" class="btn btn-sm btn-primary">View all vulnerabilities</a>
+        </div>
+    </div>
+
+    <div class="sect-pad">
+        <div class="kpi-grid">
+            <div class="kpi">
+                <span class="kpi-label">Active vulnerabilities</span>
+                <span class="kpi-value tnum">{{ kpis.total }}</span>
+                <span class="kpi-delta">open statuses</span>
+                <div class="kpi-bar"><span style="width:70%"></span></div>
+            </div>
+            <div class="kpi critical">
+                <span class="kpi-label">Critical</span>
+                <span class="kpi-value tnum">{{ kpis.critical }}</span>
+                <span class="kpi-delta">immediate action required</span>
+                <div class="kpi-bar"><span style="width:{{ ((kpis.critical / (kpis.total + 1)) * 100) | int }}%"></span></div>
+            </div>
+            <div class="kpi">
+                <span class="kpi-label">Open (unassigned)</span>
+                <span class="kpi-value tnum">{{ kpis.open }}</span>
+                <span class="kpi-delta">awaiting triage</span>
+                <div class="kpi-bar"><span style="width:{{ ((kpis.open / (kpis.total + 1)) * 100) | int }}%"></span></div>
+            </div>
+            <div class="kpi warning">
+                <span class="kpi-label">SLA breached</span>
+                <span class="kpi-value tnum">{{ kpis.breached_sla }}</span>
+                <span class="kpi-delta">past due date</span>
+                <div class="kpi-bar"><span style="width:{{ ((kpis.breached_sla / (kpis.total + 1)) * 100) | int }}%"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sect-pad sect-pad-b">
+        <div style="margin-top:20px;">
+            <a href="{{ url_for('vtracker.vuln_list') }}" class="btn">
+                View vulnerability list →
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{# Shared fields for CTI / BitSight / RedTeam manual input forms #}
+<div class="row g-3">
+    <div class="col-md-6">
+        <label class="form-label">Adresse IP <span class="text-danger">*</span></label>
+        <input type="text" name="ip_address" class="form-control" required placeholder="10.30.3.10">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Port</label>
+        <input type="number" name="port" class="form-control" value="0" min="0" max="65535">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Plugin / Finding ID <span class="text-danger">*</span></label>
+        <input type="text" name="plugin_id" class="form-control" required placeholder="CTI-001">
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Nom du plugin / Finding <span class="text-danger">*</span></label>
+        <input type="text" name="plugin_name" class="form-control" required>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">CVE</label>
+        <input type="text" name="cve" class="form-control" placeholder="CVE-2021-44228">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Sévérité <span class="text-danger">*</span></label>
+        <select name="severity" class="form-select" required>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Low">Low</option>
+            <option value="Info">Info</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">CVSS v3</label>
+        <input type="number" name="cvss_v3_score" class="form-control" step="0.1" min="0" max="10">
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Synopsis</label>
+        <input type="text" name="synopsis" class="form-control">
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Étapes de remédiation</label>
+        <textarea name="steps_to_remediate" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Facilité d'exploitation</label>
+        <input type="text" name="exploit_ease" class="form-control" placeholder="Exploits are available">
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="exploitable" id="exploitable">
+            <label class="form-check-label" for="exploitable">Exploitable</label>
+        </div>
+    </div>
+</div>

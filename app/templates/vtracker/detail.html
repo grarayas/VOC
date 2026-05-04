@@ -1,0 +1,165 @@
+{% extends "shared/base.html" %}
+{% block title %}#{{ av.av_id }} — V-Tracker{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+                <a href="{{ url_for('vtracker.vuln_list') }}">V-Tracker</a>
+                <span style="margin:0 6px; color:var(--border-strong);">/</span>
+                <span class="mono">{{ av.av_id }}</span>
+            </div>
+            <h1 class="page-title" style="font-size:18px;">{{ av.vulnerability.plugin_name }}</h1>
+            <p class="page-sub">
+                <span class="sev {{ av.vulnerability.severity | lower }}">{{ av.vulnerability.severity }}</span>
+                &nbsp;·&nbsp;
+                <span class="status {{ av.vuln_status | lower | replace(' ','-') }}">{{ av.vuln_status }}</span>
+                &nbsp;·&nbsp;
+                {{ av.asset.name }} · <span class="mono">{{ av.ip_address }}</span>
+            </p>
+        </div>
+        <div class="row-flex gap-8">
+            <a href="{{ url_for('vtracker.vuln_list') }}" class="btn btn-sm">← Back to list</a>
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 360px; flex:1;">
+
+        {# Left: vulnerability details #}
+        <div style="padding:24px 32px; border-right:1px solid var(--border); overflow:auto;">
+
+            <div class="panel" style="margin-bottom:20px;">
+                <div class="panel-head"><span class="panel-title">Vulnerability details</span></div>
+                <dl class="kv">
+                    <dt>Asset</dt>
+                    <dd>{{ av.asset.name }} — <span class="mono">{{ av.ip_address }}</span></dd>
+
+                    <dt>Scope</dt>
+                    <dd>{{ av.asset.scope.scope_name }}</dd>
+
+                    <dt>CVE</dt>
+                    <dd class="mono">{{ av.vulnerability.cve or '—' }}</dd>
+
+                    <dt>CVSS v3</dt>
+                    <dd class="tnum">{{ av.vulnerability.cvss_v3_score or '—' }}</dd>
+
+                    <dt>Port</dt>
+                    <dd class="mono">{{ av.port or '—' }}</dd>
+
+                    <dt>Source</dt>
+                    <dd style="text-transform:capitalize; font-size:11px; font-weight:600; letter-spacing:0.04em;">{{ av.source }}</dd>
+
+                    <dt>Discovered</dt>
+                    <dd class="mono">{{ av.first_discovered }}</dd>
+
+                    <dt>Exploitable</dt>
+                    <dd>{{ 'Yes' if av.vulnerability.exploitable else 'No' }}</dd>
+
+                    {% if av.vulnerability.synopsis %}
+                    <dt>Synopsis</dt>
+                    <dd>{{ av.vulnerability.synopsis }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+
+            {% if av.vulnerability.description %}
+            <div class="panel" style="margin-bottom:20px;">
+                <div class="panel-head"><span class="panel-title">Description</span></div>
+                <div class="panel-body" style="font-size:12px; line-height:1.6; color:var(--text-muted);">{{ av.vulnerability.description }}</div>
+            </div>
+            {% endif %}
+
+            {% if av.vulnerability.steps_to_remediate %}
+            <div class="panel">
+                <div class="panel-head"><span class="panel-title">Remediation</span></div>
+                <div class="panel-body" style="font-size:12px; line-height:1.6; color:var(--text-muted);">{{ av.vulnerability.steps_to_remediate }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Right: actions + SLA + history #}
+        <div style="background:var(--surface); overflow:auto; display:flex; flex-direction:column; gap:0;">
+
+            {# Status change #}
+            {% if av.next_statuses %}
+            <div style="background:#fff; border-bottom:1px solid var(--border); padding:20px;">
+                <div class="panel-title" style="margin-bottom:12px;">Change status</div>
+                <form method="POST" action="{{ url_for('vtracker.change_status', av_id=av.av_id) }}">
+                    <div style="margin-bottom:10px;">
+                        <select name="new_status" class="filter-select" style="width:100%; min-width:0;" required>
+                            <option value="">— Select new status —</option>
+                            {% for s in av.next_statuses %}
+                            {% if s != 'Accepted Risk' or is_admin %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <textarea name="comment" class="form-control form-control-sm" rows="2"
+                                  placeholder="Comment (optional)" style="resize:vertical;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; justify-content:center;">Confirm</button>
+                </form>
+            </div>
+            {% endif %}
+
+            {# SLA #}
+            {% if av.sla %}
+            <div style="background:#fff; border-bottom:1px solid var(--border); padding:20px;">
+                <div class="panel-title" style="margin-bottom:12px;">SLA</div>
+                <dl class="kv" style="padding:0;">
+                    <dt>Status</dt>
+                    <dd>
+                        <span style="font-size:11px; font-weight:600; color:{% if av.sla.sla_status=='Breached' %}var(--critical){% elif av.sla.sla_status=='At Risk' %}var(--high){% else %}var(--accent){% endif %};">
+                            {{ av.sla.sla_status }}
+                        </span>
+                    </dd>
+                    <dt>Due date</dt>
+                    <dd class="mono">{{ av.sla.sla_due_date }}</dd>
+                    <dt>Target (days)</dt>
+                    <dd class="tnum">{{ av.sla.sla_days_target }}</dd>
+                </dl>
+            </div>
+            {% endif %}
+
+            {# Add comment #}
+            <div style="background:#fff; border-bottom:1px solid var(--border); padding:20px;">
+                <div class="panel-title" style="margin-bottom:12px;">Add comment</div>
+                <form method="POST" action="{{ url_for('vtracker.add_comment', av_id=av.av_id) }}">
+                    <div style="margin-bottom:10px;">
+                        <textarea name="comment" class="form-control form-control-sm" rows="3"
+                                  placeholder="Add a comment…" required style="resize:vertical;"></textarea>
+                    </div>
+                    <button class="btn btn-sm" style="width:100%; justify-content:center;">Post comment</button>
+                </form>
+            </div>
+
+            {# History #}
+            <div style="flex:1; overflow:auto;">
+                <div style="padding:16px 20px 8px; border-bottom:1px solid var(--border); background:#fff;">
+                    <span class="panel-title">Activity history</span>
+                </div>
+                {% for entry in av.history | sort(attribute='created_at', reverse=True) %}
+                <div class="history-entry">
+                    <div class="history-meta">
+                        {{ entry.created_at.strftime('%d/%m/%Y %H:%M') }} — {{ entry.author.username }}
+                    </div>
+                    {% if entry.entry_type == 'status_change' %}
+                    <span class="status {{ entry.old_status | lower | replace(' ','-') }}">{{ entry.old_status }}</span>
+                    <span style="margin:0 6px; color:var(--text-faint);">→</span>
+                    <span class="status {{ entry.new_status | lower | replace(' ','-') }}">{{ entry.new_status }}</span>
+                    {% else %}
+                    <p style="margin:0; color:var(--text);">{{ entry.content }}</p>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="history-entry" style="color:var(--text-muted);">No history yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

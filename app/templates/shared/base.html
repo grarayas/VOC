@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VOC Platform{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+
+<header class="navbar" id="mainNavbar">
+    <a class="brand" href="/" id="brandLink">
+        <div class="brand-mark">V</div>
+        <span>VOC&nbsp;PLATFORM</span>
+    </a>
+
+    <nav class="nav-tabs" id="mainNavTabs">
+        <a class="nav-tab" id="navTabOverview" href="/overview/" style="display:none">Overview</a>
+        <a class="nav-tab" id="navTabVTracker" href="/vtracker/">
+            <span class="hover-bg"></span>
+            <span style="position:relative">VTracker</span>
+            <span class="chev" id="vtTrackerChev" style="display:none;position:relative">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+        </a>
+        <a class="nav-tab" id="navTabVHub" href="/vhub/cti">V-Hub</a>
+        <a class="nav-tab" id="navTabReports" href="/reporting/">Reports</a>
+        <a class="nav-tab" id="navTabAssets" href="/assets/" style="display:none">Assets</a>
+        <a class="nav-tab" id="navTabAdmin" href="/admin/" style="display:none">Admin</a>
+    </nav>
+
+    <div class="nav-right">
+        <input class="nav-search" placeholder="Search vulns, assets, CVEs…" id="navSearchInput"
+               onkeydown="if(event.key==='Enter'){const q=this.value.trim();if(q)window.location.href='/vtracker/list?search='+encodeURIComponent(q);}">
+        <button class="nav-icon-btn" title="Notifications" onclick="void(0)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+        </button>
+        <div class="nav-profile" id="navProfileWidget" onclick="toggleProfileMenu(event)">
+            <div class="avatar" id="navAvatar">—</div>
+            <div class="profile-meta">
+                <span class="profile-name" id="navName">—</span>
+                <span class="profile-role" id="navRole">—</span>
+            </div>
+        </div>
+        <div class="nav-dropdown" id="navDropdown">
+            <a id="navDropdownUsers" href="/users/" style="display:none">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Users
+            </a>
+            <a id="navDropdownAdmin" href="/admin/" style="display:none">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                </svg>
+                Admin Panel
+            </a>
+            <button onclick="vocLogout()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign out
+            </button>
+        </div>
+    </div>
+    <!-- V-Tracker mega dropdown — admin only, built dynamically from /vtracker/api/scopes -->
+    <div id="vtrackerMega" class="mega" style="display:none">
+        <div class="mega-panel" id="vtrackerMegaPanel">
+            <div class="mega-footer" style="grid-column:1/-1;justify-content:center;color:var(--text-faint)">Loading…</div>
+        </div>
+    </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-area">
+    {% for category, message in messages %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div id="mainContent">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // ── Auth state ────────────────────────────────────────────────────────────
+    const vocToken = localStorage.getItem('voc_token');
+    const vocUser  = JSON.parse(localStorage.getItem('voc_user') || 'null');
+
+    if (!vocToken || !vocUser) {
+        window.location.href = '/auth/login';
+    } else {
+        buildNav();
+    }
+
+    // ── Navbar builder ────────────────────────────────────────────────────────
+    function buildNav() {
+        const isAdmin = vocUser.is_admin || vocUser.role === 'admin';
+        const path    = window.location.pathname;
+
+        document.getElementById('brandLink').href = isAdmin ? '/overview/' : '/vtracker/';
+
+        if (isAdmin) {
+            document.getElementById('navTabOverview').style.display = '';
+            document.getElementById('navTabAssets').style.display   = '';
+            document.getElementById('navTabAdmin').style.display    = '';
+            document.getElementById('navDropdownAdmin').style.display = '';
+            document.getElementById('navDropdownUsers').style.display = '';
+            setupVTrackerMega();
+        }
+
+        // Highlight active tab
+        const tabs = [
+            { id: 'navTabOverview',  match: ['/overview/'] },
+            { id: 'navTabVTracker',  match: ['/vtracker'] },
+            { id: 'navTabVHub',      match: ['/vhub'] },
+            { id: 'navTabReports',   match: ['/reporting'] },
+            { id: 'navTabAssets',    match: ['/assets'] },
+            { id: 'navTabAdmin',     match: ['/admin'] },
+        ];
+        tabs.forEach(({ id, match }) => {
+            const el = document.getElementById(id);
+            if (el && match.some(m => path.startsWith(m))) {
+                el.classList.add('active');
+            }
+        });
+
+        // Populate user widget
+        const name     = vocUser.username || '—';
+        const parts    = name.split(/[.\-_]/);
+        const initials = parts.map(p => p[0] ? p[0].toUpperCase() : '').slice(0, 2).join('') || name[0]?.toUpperCase() || '?';
+        document.getElementById('navAvatar').textContent = initials;
+        document.getElementById('navName').textContent   = name;
+        document.getElementById('navRole').textContent   = (vocUser.scope || '—') + ' · ' + (isAdmin ? 'admin' : 'user');
+    }
+
+    // ── Profile dropdown ──────────────────────────────────────────────────────
+    function toggleProfileMenu(e) {
+        e.stopPropagation();
+        document.getElementById('navDropdown').classList.toggle('open');
+    }
+    document.addEventListener('click', () => {
+        document.getElementById('navDropdown').classList.remove('open');
+    });
+
+    // ── Logout ────────────────────────────────────────────────────────────────
+    function vocLogout() {
+        fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + vocToken },
+        }).finally(() => {
+            localStorage.removeItem('voc_token');
+            localStorage.removeItem('voc_user');
+            document.cookie = 'voc_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            window.location.href = '/auth/login';
+        });
+    }
+
+    // ── VTracker mega dropdown (admin) ────────────────────────────────────────
+    function setupVTrackerMega() {
+        const tab  = document.getElementById('navTabVTracker');
+        const mega = document.getElementById('vtrackerMega');
+        const chev = document.getElementById('vtTrackerChev');
+        if (!tab || !mega) return;
+
+        chev.style.display = '';
+        tab.classList.add('has-menu');
+        tab.style.position = 'relative';
+
+        let hideTimer = null;
+
+        function openMega() {
+            clearTimeout(hideTimer);
+            tab.classList.add('open');
+            mega.style.display = 'flex';
+        }
+        function closeMega() {
+            hideTimer = setTimeout(() => {
+                tab.classList.remove('open');
+                mega.style.display = 'none';
+            }, 120);
+        }
+
+        tab.addEventListener('mouseenter', openMega);
+        tab.addEventListener('mouseleave', closeMega);
+        mega.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+        mega.addEventListener('mouseleave', closeMega);
+
+        // Close on outside click
+        document.addEventListener('click', e => {
+            if (!tab.contains(e.target) && !mega.contains(e.target)) {
+                tab.classList.remove('open');
+                mega.style.display = 'none';
+            }
+        });
+
+        buildMegaPanel();
+    }
+
+    function buildMegaPanel() {
+        const panel = document.getElementById('vtrackerMegaPanel');
+        if (!panel) return;
+
+        vocFetch('/vtracker/api/scopes')
+            .then(r => r.ok ? r.json() : null)
+            .then(scopes => {
+                if (!scopes || !scopes.length) {
+                    panel.innerHTML = '<div class="mega-footer" style="grid-column:1/-1;justify-content:center">No scopes found.</div>';
+                    return;
+                }
+
+                const CAT_ORDER = ['applicatif', 'systeme', 'systeme_app'];
+                const CAT_LABEL = { applicatif: 'Applicatif', systeme: 'Système', systeme_app: 'Sys + App' };
+
+                const grouped = {};
+                CAT_ORDER.forEach(c => { grouped[c] = []; });
+                scopes.forEach(s => {
+                    const key = s.category in grouped ? s.category : 'applicatif';
+                    grouped[key].push(s);
+                });
+
+                let totalScopes = scopes.length;
+                let html = '';
+
+                CAT_ORDER.forEach(cat => {
+                    const items = grouped[cat];
+                    if (!items.length) return;
+                    html += `<div>
+                        <h3 class="mega-col-title">
+                            <span>${CAT_LABEL[cat]}</span>
+                            <span class="col-count">${items.length} scope${items.length > 1 ? 's' : ''}</span>
+                        </h3>
+                        <ul class="mega-list">`;
+                    items.forEach(s => {
+                        const ico = s.scope_name
+                            .split(/\s+/)
+                            .filter(w => /[A-Za-z]/.test(w[0]))
+                            .slice(0, 3)
+                            .map(w => w[0].toUpperCase())
+                            .join('');
+                        const desc = s.critical > 0
+                            ? `${s.open} open · ${s.critical} critical`
+                            : `${s.open} open`;
+                        const hasCrit = s.critical > 0 ? ' has-critical' : '';
+                        html += `<li><a class="mega-link${hasCrit}" href="/vtracker/list?scope_id=${s.scope_id}">
+                            <span class="ico">${ico}</span>
+                            <span class="lbl">
+                                <span class="lbl-title">${s.scope_name}</span>
+                                <span class="lbl-desc">${desc}</span>
+                            </span>
+                            <span class="count">${s.open}</span>
+                        </a></li>`;
+                    });
+                    html += `</ul></div>`;
+                });
+
+                html += `<div class="mega-footer">
+                    <span>${totalScopes} scope${totalScopes > 1 ? 's' : ''} · admin view</span>
+                    <a href="/vtracker/list">View all →</a>
+                </div>`;
+
+                panel.innerHTML = html;
+            })
+            .catch(() => {
+                panel.innerHTML = '<div class="mega-footer" style="grid-column:1/-1;justify-content:center">Failed to load scopes.</div>';
+            });
+    }
+
+    // ── Authenticated fetch ───────────────────────────────────────────────────
+    function vocFetch(url, options = {}) {
+        options.headers = options.headers || {};
+        options.headers['Authorization'] = 'Bearer ' + vocToken;
+        return fetch(url, options).then(resp => {
+            if (resp.status === 401) {
+                localStorage.removeItem('voc_token');
+                localStorage.removeItem('voc_user');
+                window.location.href = '/auth/login';
+            }
+            return resp;
+        });
+    }
+    window.vocFetch = vocFetch;
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
